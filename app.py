@@ -105,5 +105,5 @@ with st.form('my_form', clear_on_submit=True):
     
     with ai_container.empty():
         for i in range(60):
-            st.write(f'{1} sec left...')
+            st.write(f'{i} sec left...')
     del ss.openai_api_key
