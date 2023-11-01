@@ -1,17 +1,24 @@
 import streamlit as st
+from st_pages import show_pages, Page, add_page_title
+
 from langchain.chains import LLMChain
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain.callbacks.streamlit import StreamlitCallbackHandler
-import prompts
+
 import re
 import clipboard
-import time
+import prompts
 
-st.set_page_config(layout="wide")
-st.title('🦜🔗 ChatGPT Prompt Test')
 
-# print('Start session')
+add_page_title(layout='wide')
+show_pages(
+    [
+        Page('app.py', 'Prompt Test', '💬'),
+        Page('pages/chat_history.py', 'Chat History', '📝')
+    ]
+)
+
 ss = st.session_state
 
 # ----- Openai API Key
@@ -28,6 +35,13 @@ ss.model_name = st.sidebar.selectbox(
 # ----- Temperature
 ss.temperature = st.sidebar.slider(
     'Temperature', value=1.0, min_value=0.0, max_value=2.0, step=0.1)
+
+# ----- Chat History
+if 'chat_history' not in ss:
+    ss.chat_history = []
+else:
+    if len(ss.chat_history) > 20:
+        ss.chat_history = ss.chat_history[-20:]
 
 # ----- Select Prompt
 prompt_dict = {
@@ -89,8 +103,8 @@ with st.form('my_form', clear_on_submit=True):
         input_dict[k] = human_container.text_area(f"___{k}___", '')
 
     with human_container.expander("__Your Message__", expanded=True):
-        user_message = f"""```\n{prompt_template.format(**input_dict)}\n```"""
-        st.write(user_message)
+        user_message = prompt_template.format(**input_dict)
+        st.write(f"""```\n{user_message}\n```""")
 
     submitted = human_container.form_submit_button('Send Message', use_container_width=True)
     if not submitted:
@@ -99,11 +113,11 @@ with st.form('my_form', clear_on_submit=True):
     # ----- AI Container
     ai_container = st.chat_message("assistant")
     response = run_chain(input_dict, ai_container)
-    ai_container.markdown(response) # write response
+
+    ss.chat_history.append({'User':user_message,'Assistant':response})
+    ai_container.write(response) # write response
+
     ai_container.form_submit_button( # copy
         "copy & clear", on_click=on_copy_click, args=(response,), type='primary')
-    
-    with ai_container.empty():
-        for i in range(60):
-            st.write(f'{i} sec left...')
+
     del ss.openai_api_key

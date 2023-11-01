@@ -6,3 +6,4 @@ tiktoken
 # chromadb
 # pyperclip
 clipboard
+st-pages
